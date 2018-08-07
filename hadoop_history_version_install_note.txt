@@ -1,0 +1,115 @@
+wget https://github.com/apache/hadoop-common/archive/release-1.1.2.tar.gz 可能需要使用sudo来下载源代码
+解压tar xvf release-1.1.2.tar.gz
+新建一个Hadoop目录mkdir /home/xhw/hadoop/  计算机名是xhw
+移动解压出的Hadoop源代码到新建的空文件夹下mv hadoop-common-release-1.1.2 /home/xhw/hadoop/
+切换到该文件夹cd /home/xhw/hadoop/
+给Hadoop源代码文件夹换个名字mv hadoop-common-release-1.1.2/ hadoop-1.1.2
+列出文件夹下具体文件的内容ls -l
+下载ant
+从官网下载ant 
+wget http://archive.apache.org/dist/ant/binaries/apache-ant-1.8.4-bin.tar.gz
+解压缩tar xvf apache-ant-1.8.4-bin.tar.gz
+新建一个文件夹mkdir /home/xhw/toolkit/
+移动ant文件到新建文件夹下  mv apache-ant-1.8.4 /home/xhw/toolkit/
+切换到该文件夹 cd /home/xhw/toolkit/
+文件夹换个名字 mv apache-ant-1.8.4 ant184
+设置ant到环境变量
+sudo vi /etc/environment
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/home/xhw/toolkit/jdk16/bin:/home/xhw/toolkit/ant184/bin"
+
+设置Java环境变量为Java安装路径 JAVA_HOME=/home/xhw/toolkit/jdk6  注意改为实际路径
+设置ant环境变量为ant安装路径   ANT_HOME=/home/xhw/toolkit/ant184
+让环境变量生效  ./etc/environment
+执行ant命令，检查环境变量是否配置成功    ant
+用Ant编译Hadoop
+# 安装编译用的库
+ sudo apt-get install autoconf
+ sudo apt-get install libtool
+# 用Ant编译Hadoop
+cd /home/xhw/hadoop/hadoop-1.1.2/
+ant
+这个过程需要几分钟，查看生成的build目录
+ls -l build
+修改生成的jar包后缀命名，使用vi build.xml 31行把包名改为hadoop-*-1.1.2.jar，再重新ant
+rm -rf build
+ant     重新编译
+把生成的hadoop-*-1.1.2.jar复制到根目录
+cp build/*.jar .
+ls -l
+快速Hadoop配置环境脚本
+1配置环境变量
+sudo vi /etc/environment
+注意找到自己本地文件夹的路径来替换，里面对应的那些软件也应该尽快装好
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/home/conan/toolkit/jdk16/bin:/home/conan/toolkit/ant184/bin:/home/conan/toolkit/maven3/bin:/home/conan/toolkit/tomcat7/bin:/home/conan/hadoop/hadoop-1.1.2/bin"
+JAVA_HOME=/home/conan/toolkit/jdk16
+ANT_HOME=/home/conan/toolkit/ant184
+MAVEN_HOME=/home/conan/toolkit/maven3
+NUTCH_HOME=/home/conan/toolkit/nutch16
+TOMCAT_HOME=/home/conan/toolkit/tomcat7
+HADOOP_HOME=/home/conan/hadoop/hadoop-1.1.2
+HADOOP_CMD=/home/conan/hadoop/hadoop-1.1.2/bin/hadoop
+HADOOP_STREAMING=/home/conan/hadoop/hadoop-1.1.2/contrib/streaming/hadoop-streaming-1.1.2.jar
+执行. /etc/environment 中间有空格在.和/之间使修改的环境生效
+修改Hadoop三个配置文件
+vi conf/core-site.xml
+<configuration>
+<property>
+<name>fs.default.name</name>
+<value>hdfs://master:9000</value>
+</property>
+<property>
+<name>hadoop.tmp.dir</name>
+<value>/home/xhw/hadoop/tmp</value>
+</property>
+<property>
+<name>io.sort.mb</name>
+<value>256</value>
+</property>
+</configuration>
+
+vi conf/hdfs-site.xml
+<configuration>
+<property>
+<name>dfs.data.dir</name>
+<value>/home/xhw/hadoop/data</value>
+</property>
+<property>
+<name>dfs.replication</name>
+<value>1</value>
+</property>
+<property>
+<name>dfs.permissions</name>
+<value>false</value>
+</property>
+</configuration>
+
+vi conf/mapred-site.xml
+<configuration>
+<property>
+<name>mapred.job.tracker</name>
+<value>hdfs://master:9001</value>
+</property>
+</configuration>
+注意这三个配置文件都在Hadoop文件夹，找不到的话，一个个文件夹看就行了，Hadoop文件夹内的文件夹还是很少的,注意XML里面有Hadoop文件夹的路径，修改为自己的Hadoop文件夹路径
+创建Hadoop需要的目录
+mkdir /home/xhw/hadoop/data
+mkdir /home/xhw/hadoop/tmp
+给新建的这两个文件夹赋予权限
+sudo chmod 755 /home/xhw/hadoop/data/
+sudo chmod 755 /home/xhw/hadoop/tmp/
+配置hostname和hosts
+sudo hostname master
+sudo vi /etc/hosts
+192.168.1.210   master  #master这个IP地址是你电脑的IP地址
+127.0.0.1       localhost
+生成SSH免登陆
+ssh-keygen -t rsa
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+第一次启动格式化HDFS
+bin/hadoop namenode -format
+启动Hadoop服务
+bin/start-all.sh
+查看Hadoop的运行状态
+jps
+bin/hadoop dfsadmin -report
+

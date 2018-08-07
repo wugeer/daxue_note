@@ -1,0 +1,189 @@
+博客链接https://zhuanlan.zhihu.com/p/33978941
+
+1 准备
+    JDK文件：jdk-8u131-linux-x64.tar.gz
+    官方下载地址：http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+    
+    Hadoop文件：hadoop-2.9.0.tar.gz
+    
+    官方下载地址：http://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-2.9.0/hadoop-2.9.0.tar.gz
+2 安装oracle jdk
+   shell进入下载jdk压缩包文件的目录（或者解压缩时指明文件路径也行），解压缩到/usr/local
+   tar -zxf jdk-8u131-linux-x64.tar.gz -C /usr/local
+3 设置jdk环境变量
+   sudo vim /etc/profile和sudo vim /etc/bashrc这两个文件末尾加上
+   export JAVA_HOME=/usr/local/jdk1.8.0_181
+    export JRE_HOME=/usr/local/jdk1.8.0_181
+    export CLASSPATH=.:$JAVA_HOME/jre/lib/rt.jar:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+    export PATH=$PATH:$JAVA_HOME/bin
+    通过tail /etc/profile -n 5查看/etc/profile修改后的文件
+    使配置马上生效
+    source /etc/profile
+    source /etc/bashrc
+    查看Java环境是否配置成功
+    java -version
+4安装Hadoop
+    解压缩Hadoop到/usr/local
+    tar -zxf /root/hadoop-2.9.0.tar.gz -C /usr/local，第一个为Hadoop压缩文件路径
+    查看Hadoop版本
+    /usr/local/hadoop-2.9.0/bin/hadoop version
+    添加Hadoop安装目录到环境变量
+    sudo vim /etc/profile和sudo vim /etc/bashrc这两个文件末尾加上
+    export HADOOP_HOME=/usr/local/hadoop-2.9.0
+    export HADOOP_INSTALL=$HADOOP_HOME
+    export HADOOP_MAPRED_HOME=$HADOOP_HOME
+    export HADOOP_COMMON_HOME=$HADOOP_HOME
+    export HADOOP_HDFS_HOME=$HADOOP_HOME
+    export YARN_HOME=$HADOOP_HOME
+    export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+    export PATH=$PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+    使配置马上生效
+    source /etc/profile
+    source /etc/bashrc
+    此时直接输入hadoop version就能查看版本了
+5配置
+    5.1用户配置
+        添加系统用户来运行Hadoop有关的脚本和任务，系统用户名为hadoop
+        useradd hadoop -s /bin/bash –m
+        通过id命令查看系统用户的用户组和用户
+        id hadoop
+        设置系统用户的密码
+        passwd hadoop
+        hadoop系统用户权限管理
+        sudo vim /etc/sudoers找到“root ALL=(ALL) ALL”那一行，在下面添加一行：
+        hadoop ALL=(ALL) ALL
+        我的选择是设为和原先那行一样的(ALL) ALL形式的，注：本电脑中是(ALL，ALL) ALL，所以添加的是hadoop ALL=(ALL，ALL) ALL
+        使用:wq!强制保存只读文件
+    5.2免登录配置
+        切换到hadoop用户（如果已经是hadoop用户，那么跳过切换用户）
+        su hadoop 如果出现su:鉴定故障，那么使用sudo su hadoop
+        切换到～目录
+        cd ~
+        登录ssh
+        ssh localhost
+        重新创建这个目录/home/hadoop/.ssh和该目录下的known_hosts文件
+        rm -rf /home/hadoop/.ssh
+        ssh localhost
+        依次输入yes和hadoop系统用户的密码
+        退出登录
+        exit
+        进入/home/hadoop/.ssh/
+        cd /home/hadoop/.ssh/
+        生成秘钥
+        ssh-keygen -t rsa
+        一路回车即可
+        将密钥文件的内容添加到authorized_keys文件，同时授予600的权限。
+        cat id_rsa.pub >> authorized_keys
+        chmod 600 authorized_keys
+        此时使用ssh localhost就不需要输入密码了
+    5.3Hadoop配置
+        5.3.1更改hadoop安装目录所有者
+            查看hadoop安装目录所有者
+            ls -lh
+            如果不是hadoop系统用户，那么更改owner和group
+            sudo chown -R hadoop:hadoop /usr/local/hadoop-2.9.0
+        5.3.2更改hadoop配置
+            hadoop的配置文件存放于/usr/local/hadoop-2.9.0/etc/hadoop目录下，主要有几个配置文件：
+            core-site.xml
+            hdfs-site.xml
+            mapred-site.xml
+            yarn-site.xml
+            其中，后两个主要是跟YARN有关的配置。
+            将core-site.xml更改为如下内容：
+            <configuration>
+            <property>
+            <name>fs.defaultFS</name>
+            <value>hdfs://localhost:9000</value>
+            </property>
+            </configuration>
+            
+            然后再将hdfs-site.xml更改为如下内容：
+            <configuration>
+            <property>
+            <name>dfs.replication</name>
+            <value>1</value>
+            </property>
+            </configuration>
+6检验配置
+    6.1namenode格式化
+        经过上面的配置，Hadoop是配置成功了，但是并不能工作，还需要进行初始化操作，因为我们已经配置了Hadoop的相关环境变量，因此我们可以直接执行如下命令：
+        cd /usr/local/hadoop-2.9.0
+        ./bin/hdfs namenode –format #这行命令的意思是执行bin目录下的hdfs文件，其中namenode节点格式化
+        其中有一句：” INFO common.Storage: Storage directory /tmp/hadoop-hadoop/dfs/name has been successfully formatted.”可以作为是否成功的标志
+    6.2开启namenode和datanode守护进程
+        通过start-dfs.sh命令开启NameNode 和 DataNode 守护进，第一次执行时会询问是否连接，输入”yes”即可（因为已经配置了ssh免密码登录），如下所示（请注意一定要用创建的hadoop用户来运行，如果不是hadoop请记得用su hadoop命令来切换到hadoop用户）：
+        首先确认当前目录是否是/usr/local/hadoop-2.9.0，否，切换到该目录
+        ./sbin/start-dfs.sh
+        使用jps查看启动情况
+        jps
+        若启动成功会出现上述的进程，如果没有NameNode和DataNode进程请检查配置情况，或者通过/usr/local/hadoop-2.9.0/logs下的日志来查看配置错误。
+        这时可以在浏览器中输入http://localhost:50070/查看NameNode和DataNode的信息以及HDFS的信息
+    6.3执行WordCount程序
+        6.3.1HDFS简介
+            下面是一些HDFS命令：
+            级联创建HDFS目录：hdfs dfs -mkdir -p /user/haddop
+            查看HDFS目录：hdfs dfs -ls /user
+            创建HDFS目录：hdfs dfs -mkdir /input
+            查看HDFS目录：hdfs dfs -ls /
+            删除HDFS目录：hdfs dfs -rm -r -f /input
+            删除HDFS目录：hdfs dfs -rm -r -f /user/haddop
+            级联创建HDFS目录：hdfs dfs -mkdir -p /user/hadoop/input
+            注意：在HDFS中创建的目录也仅支持在HDFS中查看，在HDFS之外（比如在Linux系统中的命令行下）是看不到这些目录存在的。重要的事情多重复几遍：请按照本文中的3.2节提示将Hadoop安装路径信息配置到环境变量中。
+            注意：在deepin系统需要在上面那些命令前加上./bin/，这是由于deepin系统中hdfs这个文件在bin文件下
+        6.3.2执行WordCount程序
+            首先将工作路径切换到Hadoop的安装目录：/usr/local/hadoop-2.9.0
+            cd /usr/local/hadoop-2.9.0
+            接着在HDFS中创建目录：hdfs dfs -mkdir -p /user/hadoop/input
+            ./bin/hdfs dfs -mkdir -p /user/hadoop/input
+            然后指定要分析的数据源，可以将一些文本数据放到刚刚创建的HDFS系统下的input目录下，为了简单起见，这里就直接将hadoop安装路径下的一些用于配置的xml放在input目录下：
+            ./bin/hdfs dfs -put /usr/local/hadoop-2.9.0/etc/hadoop/*.xml /user/hadoop/input
+            通过hdfs查看执行该命令的输出
+            ./bin/hdfs dfs -ls
+            当然，也可以在Hadoop提供的Web界面下查看，在浏览器输入网址http://localhost:50070/explorer.html然后输入HDFS下的文件路径
+            然后执行MapReduce作业，命令如下:
+            hadoop jar /usr/local/hadoop-2.9.0/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep input output 'dfs[a-z.]+'
+            这个作业的作用的将/user/hadoop/input/这个HDFS目录下的文件中包含有dfs开头的单词找出来并统计出现的次数，如果程序执行没有错误，我们将会在/user/hadoop/output/这个HDFS目录下看到两个文件：
+            ./bin/hdfs dfs -ls /user/hadoop/output
+            我们用如下命令在HDFS中查看：
+            ./bin/hdfs dfs -cat /user/hadoop/output/*
+            也可以将其从HDFS文件系统中取出来放在本地：
+            ./bin/hdfs dfs -get /user/hadoop/output  /home/hadoop/output
+            上面的命令就是将HDFS文件路径/user/hadoop/output中的所有内容都拷贝到/home/hadoop/output下，这是就可以用熟悉的Linux命名查看文件内容了。
+            注意：
+            1、在程序执行时，/user/hadoop/output这个HDFS目录不能存在，否则再次执行时会报错，这是可以重新指定输出目录或者删除这个目录即可，如执行./bin/hdfs dfs -rm -f -r /user/hadoop/output命令。
+            2、如果需要关闭Hadoop，请执行stop-dfs.sh命名即可。
+            3、Hadoop的NameNode和DataNode节点的格式化成功执行一次之后，下次执行时不必执行
+    6.启用yarn模式
+         YARN，全称是Yet Another Resource Negotiator，YARN是从 MapReduce 中分离出来的，负责资源管理与任务调度。YARN 运行于 MapReduce 之上，提供了高可用性、高扩展性。上述通过 tart-dfs.sh 启动 Hadoop，仅仅是启动了 MapReduce 环境，我们可以启动 YARN ，让 YARN 来负责资源管理与任务调度。
+        要想使用YARN，首先要通过mapred-site.xml来配置，默认情况在/usr/local/hadoop-2.9.0/etc/hadoop是不存在这个文件的，但是有一个名为mapred-site.xml.template的模板文件。
+        首先将其改名为mapred-site.xml：
+        cp /usr/local/hadoop-2.9.0/etc/hadoop/mapred-site.xml.template /usr/local/hadoop-2.9.0/etc/hadoop/mapred-site.xml
+        然后修改文件内容如下：
+        <configuration>
+        <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+        </property>
+        </configuration>
+        
+        同样将同一目录下的yarn-site.xml文件内容修改如下：
+        <configuration>
+        <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+        </property>
+        <property>
+        <name>yarn.nodemanager.env-whitelist</name>
+        <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+        </property>
+        </configuration>
+        至此，可以通过start-yarn.sh来启动YARN和通过stop-yarn.sh来停止YARN了。
+        
+        启动YARN:
+        请在确定已经正确执行过start-dfs.sh后再执行执行如下命令：
+        ./bin/start-yarn.sh
+        为了能在Web中查看任务运行情况，需要开启历史服务器，执行如下命令：
+        mr-jobhistory-daemon.sh start historyserver
+        可通过jps查看启动情况：
+        jps
+        启动YARN之后是可以在Web界面中查看任务的执行情况的，网址是http://localhost:8088/
