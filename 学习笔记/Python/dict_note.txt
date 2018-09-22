@@ -1,0 +1,194 @@
+Python字典可存储任意类型对象，如字符串、数字、元组……  优点：取值方便，速度快
+1，创建字典
+字典由键（key）和对应值（value）成对组成。字典也被称作关联数组或哈希表。基本语法如下：
+dict = {'Alice': '2341', 'Beth': '9102', 'Cecil': '3258'}
+注意：
+每个键与值用冒号隔开（:），每对用逗号，每对用逗号分割，整体放在花括号中（{}）。
+键必须独一无二，但值则不必。
+值可以取任何数据类型，但必须是不可变的，如字符串，数组或元组。
+2，访问字典中的值
+print(d['key']) 如果写了不存在的值会报错
+print(d.get('key')) 如果写了不存在的值，返回None
+print(d.get('key','not find ')) 如果找不到存在的值，返回 “not find”
+print(d.keys())  #获取所有的key 值
+print(d.values()) #获取所有的value 值
+if  'key' in d:   #判断key是否存在
+    print('key')
+for k,v in d.items():   #遍历字典
+    print(k,v)
+无须转换成list 格式，保留了字典原有的特性
+for k in dict:
+    print(k,dict[k])
+    print(k,dict.get(k))   取值速度快，性能好
+3，修改字典
+d['key'] = value         key 存在即修改，key不存在即新增
+d.setdefault('key',value)   只能新增
+4，删除字典元素
+d.pop('key')  必须要传值，因为字典是无序的
+d.popitem()  随机删除一个
+del d['key'] 
+d.clear()  清空字典
+5，其他
+print(dict.items())   输出一个list格式（非真正意义上的list）
+print(list(dict.items()))  把字典的key 和 value 转成一个多维list
+len(dict)：计算字典元素个数，即键的总数。
+str(dict)：输出字典可打印的字符串。
+type(variable)：返回输入的变量类型，如果变量是字典就返回字典类型。
+6，字典的键必须初始化
+如果视图访问一个字典中不存在的键，会导致一个keyerror。出行keyerror时，程序会由于运行时错误崩溃
+用“in ”检查成员关系
+if 'bananas' in fruits:
+    fruits['bananas'] += 1
+else :
+    fruits['bananas'] = 1
+查看“bananas”键是否在字典中，由于现在没有这个键，所以将它的值初始化为1，这样就能杜绝出行keyerror的可能性
+用“not in ”替换 “in”
+if 'bananas'  not in fruits:
+    fruits['bananas'] += 0 #初始化，如果需要
+fruits['bananas'] += 1
+使用setdefault 方法
+for letter in word:
+    if letter in vowels:
+        found.setdefault(letter,0)
+        found[letter] += 1
+setdefault 可以保证把一个不存在的键初始化为一个指定的默认值，或者什么也不做（也就是说，已有的键的关联值将保持不变）
+访问一个键之前，可以通过确保字典中的每个键都有一个关联值来避免keyerror。尽管这里in和not in 操作符可以提供帮助，不过更成熟的技术是使用setdault 方法
+将两个字典合并
+a={'a':1,'b':2,'c':3}
+b= {'aa':11,'bb':22,'cc':33}
+#方法一
+print(dict(a,**b))
+#方法二 这其实就是在内存中创建两个列表，再创建第三个列表，拷贝完成后，创建新的dict，删除掉前三个列表。这个方法耗费性能，而且对于python3，这个无法成功执行，因为items()返回是个对象。
+print(dict(list(a.items())+list(b.items())))
+#方法三
+c={}
+c.update(a)
+c.update(b)
+print(c)
+#方法四  python 3.5支持,可以存在重复键值，比如说：a={'a':1,'b':2,'c':3,'aa':12}会报错TypeError: print() got multiple values for keyword argument 'aa'
+print(**a,**b)
+
+他们的输出结果都是：
+{'bb': 22, 'cc': 33, 'aa': 11, 'a': 1, 'b': 2, 'c': 3}
+注意如果存在相同键值，比如说： 
+a={'a':1,'b':2,'c':3,'aa':12}　b= {'aa':11,'bb':22,'cc':33} 
+那么方法一＼二＼三得到结果为
+{'cc': 33, 'a': 1, 'bb': 22, 'c': 3, 'b': 2, 'aa': 11｝
+1
+而方法四则会报错：
+TypeError: print() got multiple values for keyword argument ‘aa’ 
+10、key和value互换 
+方法一：
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+dict_ori = {'A':1, 'B':2, 'C':3}
+dict_new = {value:key for key,value in dict_ori.items()}
+print(dict_new)
+{1: ‘A’, 2: ‘B’, 3: ‘C’}
+
+方法二： 
+使用zip方法
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+dict_ori = {'A':1, 'B':2, 'C':3}
+dict_new2= dict(zip(dict_ori.values(), dict_ori.keys()))
+print(dict_new2)
+{1: ‘A’, 2: ‘B’, 3: ‘C’}
+10、字典多键值及重复键值的使用方法(详解) 
+方案一
+#encoding=utf-8
+print ('中国')
+#字典的一键多值
+print('方案一 list作为dict的值 值允许重复'  )
+d1={}
+key=1
+value=2
+d1.setdefault(key,[]).append(value)
+value=2
+d1.setdefault(key,[]).append(value)
+print (d1)
+#获取值
+print ('方案一 获取值')
+print (list(d1[key])  )
+print( '方案一 删除值，会留下一个空列表' )
+d1[key].remove(value)
+d1[key].remove(value)
+print (d1  )
+print ('方案一 检查是否还有一个值' )
+print (d1.get(key,[]) )
+方案一输出结果
+中国
+方案一 list作为dict的值 值允许重复
+{1: [2, 2]}
+方案一 获取值
+[2, 2]
+方案一 删除值，会留下一个空列表
+{1: []}
+方案一 检查是否还有一个值
+[]
+方案二
+print ('方案二 使用子字典作为dict的值 值不允许重复')
+d1={}
+key=1
+keyin=2
+value=11
+d1.setdefault(key,{})[keyin]=value
+keyin=2
+value=22
+d1.setdefault(key,{})[keyin]=value
+keyin=3
+value=33
+d1.setdefault(key,{})[keyin]=value
+print (d1 )
+print ('方案二 获取值' )
+print (list(d1[key]) )
+print ('方案二 删除值，会留下一个空列表' )
+del d1[key][keyin]
+keyin=2
+del d1[key][keyin]
+print (d1)
+print ('方案二 检查是否还有一个值')
+print (d1.get(key,()) )
+
+方案二输出结果
+
+方案二 使用子字典作为dict的值 值不允许重复
+{1: {2: 22, 3: 33}}
+方案二 获取值
+[```2, 3]
+方案二 删除值，会留下一个空列表
+{1: {}}
+方案二 检查是否还有一个值
+{}
+方案三
+
+print ('方案三 使用set作为dict的值 值不允许重复')
+d1={}
+
+key=1
+value=2
+d1.setdefault(key,set()).add(value)
+value=2
+d1.setdefault(key,set()).add(value)
+value=3
+d1.setdefault(key,set()).add(value)
+print ('方案三 获取值' )
+print (list(d1[key]) )
+print ('方案三 删除值，会留下一个空列表')
+d1[key].remove(value)
+value=2
+d1[key].remove(value)
+print (d1 )
+print ('方案三 检查是否还有一个值' )
+print (d1.get(key,()) )
+
+输出结果：
+
+方案三 使用set作为dict的值 值不允许重复
+{1: {2, 3}}
+方案三 获取值
+[2, 3]
+方案三 删除值，会留下一个空列表
+{1: set()}
+方案三 检查是否还有一个值
+set()

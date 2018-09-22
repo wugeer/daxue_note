@@ -1,0 +1,193 @@
+字符串是 Python 中最常用的数据类型。我们可以使用引号(‘或”)来创建字符串。
+创建字符串很简单，只要为变量分配一个值即可
+字符串的格式
+b = "hello itcast.cn"
+#    或者
+b = 'hello itcast.cn'
+双引号或者单引号中的数据，就是字符串
+字符串连接的方法
+1 直接通过加号(+)操作符连接
+a = "str1"
+b = "str2"
+c = a + b
+print("a：%s" % a)  # a：str1
+print("b:%s" % b)  # b:str2
+print("c:%s" % c)  # c=a+b:str1str2
+2 join方法
+join()： 连接字符串数组。将字符串、元组、列表中的元素以指定的字符(分隔符)连接生成一个新的字符串
+‘sep’.join(seq) 
+参数说明 
+sep：分隔符。可以为空 
+seq：要连接的元素序列、字符串、元组、字典 
+上面的语法即：以sep作为分隔符，将seq所有的元素合并成一个新的字符串
+返回值：返回一个以分隔符sep连接各个元素后生成的字符串
+listStr = ['python', 'tab', '.com', 'wqetab', 'ew.com']
+print(listStr)
+website = '++'.join(listStr)
+print(website) # python++tab++.com
+3 替换
+例子：
+a = "str1"
+b = "str2"
+e = "===%s===" % (a + b)
+print("a：%s" % a)  # a：str1
+print("b:%s" % b)  # b:str2
+print("e:%s"%e)    # e:===str1str2===
+总结
+下面再来说一下三种方法的不同
+方法1，使用简单直接，但是网上不少人说这种方法效率低 
+　　之所以说python 中使用 + 进行字符串连接的操作效率低下，是因为python中字符串是不可变的类型，使用 + 连接两个字符串时会生成一个新的字符串，生成新的字符串就需要重新申请内存，当连续相加的字符串很多时(a+b+c+d+e+f+…) ，效率低下就是必然的了
+方法2，使用略复杂，但对多个字符进行连接时效率高，只会有一次内存的申请。而且如果是对list的字符进行连接的时候，这种方法必须是首选
+方法3：字符串格式化，这种方法非常常用
+　　加号连接效率低是在连续进行多个字符串连接的时候出现的，如果连接的个数较少，加号连接效率反而比join连接效率高
+Python字符串运算符
+下表实例变量 a 值为字符串 “Hello”，b 变量值为 “Python”：
+操作符	描述	实例
++	字符串连接	>>>a + b
+’HelloPython’
+* 重复输出字符串
+>>>a ✲2
+’HelloHello’
+[]	通过索引获取字符串中字符	>>>a[1]
+’e’
+[ : ]	截取字符串中的一部分	>>>a[1:4]
+’ell’
+in	成员运算符	
+如果字符串中包含给定的字符返回 True
+>>>”H” in a
+True
+not in	成员运算符	
+如果字符串中不包含给定的字符返回 True 
+>>>”M” not in a
+True
+r/R	原始字符串 - 原始字符串：所有的字符串都是直接按照字面的意思来使用，没有转义特殊或不能打印的字符。 原始字符串除在字符串的第一个引号前加上字母”r”（可以大小写）以外，与普通字符串有着几乎完全相同的语法。	>>>print r’\n’
+\n
+>>> print R’\n’
+\n
+字符串操作
+　　关于字符串的方法还是比较多的，我把感觉常用的分了下类，把它们写了下来希望对你们有个参考，最后也把关于字符串的方法在在最后附着，有空可以看看
+字符串的格式操作
+去掉不需要的字符（默认为空格）
+s.strip()去掉字符串两端字符
+s.lstrip()去掉字符串左端字符
+s.rstrip()去掉字符串右端字符
+s = ' abc 123 '
+s.strip()
+# 'abc 123'
+
+ s.lstrip()
+# 'abc 123 '
+
+s = '-----ab+++++'
+s.strip('-+')  # 'ab'
+
+字符串在输出时的对齐 
+S.ljust(width,[fillchar]) #输出width个字符，S左对齐，不足部分用fillchar填充，默认的为空格。
+S.rjust(width,[fillchar]) #右对齐
+S.center(width, [fillchar]) #中间对齐
+S.zfill(width) #把S变成width长，并在右对齐，不足部分用0补足
+使用format方法（见上篇文章）
+s='abc'
+format(s,'>10')
+# '       abc'
+对字符串的大小写字母进行转换
+S.lower() #小写
+S.upper() #大写
+S.swapcase() #大小写互换
+S.capitalize() #首字母大写
+String.capwords(S) #这是模块中的方法。它把S用split()函数分开，然后用capitalize()把首字母变成大写，最后用join()合并到一起
+>>> s = 'stiven'
+>>> s.swapcase()
+'STIVEN'
+>>> s = 'SHAW'
+>>> s.swapcase()
+'shaw'
+字符串的截取(重点）
+切片的语法：字符串[起始:结束:步长] 
+注意：选取的区间属于左闭右开型，即从”起始”位开始，到”结束”位的前一位结束（不包含结束位本身)。
+str[0:3] #截取第一位到第三位的字符
+str[:] #截取字符串的全部字符
+str[0::2]# 以步长为2，截取字符串的全部字符
+S.replace(repl,string) 
+repl，就是replacement，被替换，的字符串的意思。repl是字符串 
+string，即表示要被处理，要被替换的那个string字符串。
+s='python|c|java|c++|php'
+s.replace(r'|',"语言:")
+# 'python语言:c语言:java语言:c++语言:php'
+S.split([sep, [maxsplit]]) #以sep为分隔符，把S分成一个list。maxsplit表示分割的次数。默认的分割符为空白字符
+re.split(format，str) # format：正则表达式，str：字符串；需要导入re 工具箱
+import re
+s='python|c|java|c++|php'
+re.split(r'[|]',s)
+# ['python', 'c', 'java', 'c++', 'php']
+re.sub(pattern, repl, string) 对于输入的一个字符串，利用正则表达式（的强大的字符串处理功能），去实现（相对复杂的）字符串替换处理，然后返回被替换后的字符串 
+pattern，表示正则中的模式字符串 
+repl，就是replacement，被替换的字符串的意思。repl可以是字符串，也可以是函数 
+string，即表示要被处理，要被替换的那个string字符串。
+import re
+s='python|c|java|c++|php'
+re.sub(r'[|]',"语言:",s)
+'python语言:c语言:java语言:c++语言:php'
+符串的测试、判断函数
+strcmp(sStr1,sStr2) #比较字符串
+S.startswith(prefix[,start[,end]]) #是否以prefix开头
+S.endswith(suffix[,start[,end]]) #以suffix结尾
+S.isalnum() #是否全是字母和数字，并至少有一个字符
+S.isalpha() #是否全是字母，并至少有一个字符
+S.isdigit() #是否全是数字，并至少有一个字符
+S.isspace() #是否全是空白字符，并至少有一个字符
+S.islower() #S中的字母是否全是小写
+S.isupper() #S中的字母是否便是大写
+S.istitle() #S是否是首字母大写的
+字符串中的搜索
+S.find(substr, [start, [end]]) #返回S中出现substr的第一个字母的标号，如果S中没有substr则返回-1。start和end作用就相当于在S[start:end]中搜索
+S.index(substr, [start, [end]]) #与find()相同，只是在S中没有substr时，会返回一个运行时错误
+S.rfind(substr, [start, [end]]) #返回S中最后出现的substr的第一个字母的标号，如果S中没有substr则返回-1，也就是说从右边算起的第一次出现的substr的首字母标号
+S.rindex(substr, [start, [end]])
+S.count(substr, [start, [end]]) #计算substr在S中出现的次数
+字符串的方法的api
+方法	描述
+string.capitalize()	把字符串的第一个字符大写
+string.center(width)	返回一个原字符串居中,并使用空格填充至长度 width 的新字符串
+string.count(str, beg=0, end=len(string))	返回 str 在 string 里面出现的次数，如果 beg 或者 end 指定则返回指定范围内 str 出现的次数
+string.decode(encoding=’UTF-8’, errors=’strict’)	以 encoding 指定的编码格式解码 string，如果出错默认报一个 ValueError 的 异 常 ， 除 非 errors 指 定 的 是 ‘ignore’ 或 者’replace’
+string.encode(encoding=’UTF-8’, errors=’strict’)	以 encoding 指定的编码格式编码 string，如果出错默认报一个ValueError 的异常，除非 errors 指定的是’ignore’或者’replace’
+string.endswith(obj, beg=0, end=len(string))	检查字符串是否以 obj 结束，如果beg 或者 end 指定则检查指定的范围内是否以 obj 结束，如果是，返回 True,否则返回 False.
+string.expandtabs(tabsize=8)	把字符串 string 中的 tab 符号转为空格，tab 符号默认的空格数是 8。
+string.find(str, beg=0, end=len(string))	检测 str 是否包含在 string 中，如果 beg 和 end 指定范围，则检查是否包含在指定范围内，如果是返回开始的索引值，否则返回-1
+string.format()	格式化字符串
+string.index(str, beg=0, end=len(string))	跟find()方法一样，只不过如果str不在 string中会报一个异常.
+string.isalnum()	如果 string 至少有一个字符并且所有字符都是字母或数字则返回 True,否则返回 False
+string.isalpha()	如果 string 至少有一个字符并且所有字符都是字母则返回 True,否则返回 False
+string.isdecimal()	如果 string 只包含十进制数字则返回 True 否则返回 False.
+string.isdigit()	如果 string 只包含数字则返回 True 否则返回 False.
+string.islower()	如果 string 中包含至少一个区分大小写的字符，并且所有这些(区分大小写的)字符都是小写，则返回 True，否则返回 False
+string.isnumeric()	如果 string 中只包含数字字符，则返回 True，否则返回 False
+string.isspace()	如果 string 中只包含空格，则返回 True，否则返回 False.
+string.istitle()	如果 string 是标题化的(见 title())则返回 True，否则返回 False
+string.isupper()	如果 string 中包含至少一个区分大小写的字符，并且所有这些(区分大小写的)字符都是大写，则返回 True，否则返回 False
+string.join(seq)	以 string 作为分隔符，将 seq 中所有的元素(的字符串表示)合并为一个新的字符串
+string.ljust(width)	返回一个原字符串左对齐,并使用空格填充至长度 width 的新字符串
+string.lower()	转换 string 中所有大写字符为小写.
+string.lstrip()	截掉 string 左边的空格
+string.maketrans(intab, outtab])	maketrans() 方法用于创建字符映射的转换表，对于接受两个参数的最简单的调用方式，第一个参数是字符串，表示需要转换的字符，第二个参数也是字符串表示转换的目标。
+max(str)	返回字符串 str 中最大的字母。
+min(str)	返回字符串 str 中最小的字母。
+string.partition(str)	有点像 find()和 split()的结合体,从 str 出现的第一个位置起,把 字 符 串 string 分 成 一 个 3 元 素 的 元 组 
+(string_pre_str,str,string_post_str),如果 string 中不包含str 则 string_pre_str == string.
+string.replace(str1, str2, num=string.count(str1))	把 string 中的 str1 替换成 str2,如果 num 指定，则替换不超过 num 次.
+string.rfind(str, beg=0,end=len(string) )	类似于 find()函数，不过是从右边开始查找.
+string.rindex( str, beg=0,end=len(string))	类似于 index()，不过是从右边开始.
+string.rjust(width)	返回一个原字符串右对齐,并使用空格填充至长度 width 的新字符串
+string.rpartition(str)	类似于 partition()函数,不过是从右边开始查找.
+string.rstrip()	删除 string 字符串末尾的空格.
+string.split(str=”“, num=string.count(str))	以 str 为分隔符切片 string，如果 num有指定值，则仅分隔 num 个子字符串
+string.splitlines([keepends])	按照行(‘\r’, ‘\r\n’, \n’)分隔，返回一个包含各行作为元素的列表，如果参数 keepends 为 False，不包含换行符，如果为 True，则保留换行符。
+string.startswith(obj, beg=0,end=len(string))	检查字符串是否是以 obj 开头，是则返回 True，否则返回 False。如果beg 和 end 指定值，则在指定范围内检查.
+string.strip([obj])	在 string 上执行 lstrip()和 rstrip()
+string.swapcase()	翻转 string 中的大小写
+string.title()	返回”标题化”的 string,就是说所有单词都是以大写开始，其余字母均为小写(见 istitle())
+string.translate(str, del=”“)	根据 str 给出的表(包含 256 个字符)转换 string 的字符,要过滤掉的字符放到 del 参数中
+string.upper()	转换 string 中的小写字母为大写
+string.zfill(width)	返回长度为 width 的字符串，原字符串 string 右对齐，前面填充0
+string.isdecimal()	isdecimal()方法检查字符串是否只包含十进制字符。这种方法只存在于unicode对象。

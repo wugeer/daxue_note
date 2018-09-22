@@ -1,0 +1,59 @@
+python读取文件一般情况是利用open()函数以及read()函数来完成
+f = open(filename,'r')
+f.read()
+f.read()读到文件尾时返回""(空字串)
+这种方法读取小文件，即读取远远大小小于内存的文件显然没有什么问题。但是如果是将一个10G大小的日志文件读取，即文件大于内存的大小，这么处理就有问题了，会造成MemoryError也就是发生内存溢出。
+发生这种错误的原因在于，read()方法执行操作是一次性的都读入内存中，显然文件大于内存就会报错。
+解决方法：
+这里发现跟read()类似的还有其他的方法：read(参数)、readline()、readlines()
+(1)read(参数)：通过参数指定每次读取的大小长度,这样就避免了因为文件太大读取出问题。
+while True:
+    block = f.read(1024)
+    if not block:
+        break
+(2)readline()：每次读取一行
+while True:
+    line = f.readline()
+    if not line:
+        break
+对比：
+readlines()：读取全部的行，构成一个list，通过list来对文件进行处理，但是这种方式依然会造成MemoyError
+for line in f.readlines():
+	pass
+(3)pythonic（我理解的是很python的python代码）的解决办法：
+with open(filename, 'r') as flie:
+    for line in file:
+        pass
+对可迭代对象file进行迭代，这样会自动的使用buffered IO以及内存管理，这样就不必担心大文件问题了。
+（4）后来，又发现了一个模块：linecache，这个模块也可以解决大文件读取的问题，并且可以指定读取哪一行.
+使用：
+linecache先把文件一次性读入到缓存中，在以后访问文件的时候，就不必要再从硬盘读取
+1.将文件所有内容以 行 形式读入，示例如下，
+lines = linecache.getlines(filename)
+其中lines为列表格式，正序存放了文件的每一行，filename为文件路径名。
+2.读取文件指定某一行，示例如下，
+line = linecache.getline(filename,linenum)
+# 输出第2行
+text = linecache.getline(filename, 2)
+(5)fileinput处理
+import fileinput
+for line in fileinput.input(['sum.log']):
+    print line
+fileinput简单介绍：
+fileinput模块提供处理一个或多个文本文件的功能，可以通过使用for循环来读取一个或多个文本文件的所有行。
+【默认格式】
+  　　fileinput.input (files='filename', inplace=False, backup='', bufsize=0, mode='r', openhook=None)
+1 files:         #文件的路径列表，默认是stdin方式，多文件['1.txt','2.txt',...]
+2 inplace:       #是否将标准输出的结果写回文件，默认不取代
+3 backup:        #备份文件的扩展名，只指定扩展名，如.bak。如果该文件的备份文件已存在，则会自动覆盖。
+4 bufsize:       #缓冲区大小，默认为0，如果文件很大，可以修改此参数，一般默认即可
+5 mode:　　　　　　#读写模式，默认为只读
+6 openhook:　　　 #该钩子用于控制打开的所有文件，比如说编码方式等;        
+【常用函数】
+fileinput.input()       #返回能够用于for循环遍历的对象
+fileinput.filename()    #返回当前文件的名称
+fileinput.lineno()      #返回当前已经读取的行的数量（或者序号）
+fileinput.filelineno()  #返回当前读取的行的行号
+fileinput.isfirstline() #检查当前行是否是文件的第一行
+fileinput.isstdin()     #判断最后一行是否从stdin中读取
+fileinput.close()       #关闭队列

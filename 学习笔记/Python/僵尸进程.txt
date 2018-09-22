@@ -1,0 +1,237 @@
+孤儿进程：一个父进程退出，而它的一个或多个子进程还在运行，那么那些子进程将成为孤儿进程。孤儿进程将被init进程(进程号为1)所收养，并由init进程对它们完成状态收集工作。
+
+僵尸进程：一个进程使用fork创建子进程，如果子进程退出，而父进程并没有调用wait或waitpid获取子进程的状态信息，那么子进程的进程描述符仍然保存在系统中。这种进程称之为僵死进程。
+
+认识僵尸进程
+1、如果父进程先退出
+子进程自动被 init 进程收养，不会产生僵尸进程
+2、如果子进程先退出
+2.1 父进程 wait() 处理，则僵尸进程会被父进程清理
+2.2 如果父进程不用 wait() 处理，则僵尸进程会在父进程退出之前一直存在。当然，父进程退出后，僵尸子进程会被 init 收养，init 进程会自动调用 wait() 处理。但是对于处理网络请求的服务器进程来说，父进程可能会一直存在，子进程处理完任务就退出，这种情况下会产生很多僵尸进程，这种场景就需要对僵尸进程的处理提高警惕了。
+
+避免产生僵尸进程的5种方法
+1、推荐方法：fock twice, 用孙子进程去完成子进程的任务（注意这种方法的使用情景）子进程成为孤儿进程–fork两次
+　　《Unix 环境高级编程》中非常详细。原理是将子进程成为孤儿进程，从而其的父进程变为init进程，通过init进程可以处理僵尸进程
+在这个方法中,我们第一次创建的进程只是一个过渡进程,它在创建了第二个进程后就立即消亡,从而使第二个进程成为一个孤儿进程,由init接管.
+而我们通过让原进程wait第一个进程来保证第一个进程不会成为僵死进程 
+由于第一个进程没做任何操作,便立即退出,因此源进程wait第一个进程的花销几乎可以不计.
+因此如果一个进程要fork一个子进程，但不要求它等待子进程终止，也不希望子进程处于僵死状态直到父进程终止，可以使用这种方法.
+在这种方法中,父进程和第二个子进程才是真正工作的进程,而第一个子进程只是用于fork第二个子进程的一个过渡进程,通过它使父进程和第二个子进程的不存在直接的父子关系,从而避免了僵死进程的产生.
+2、wait(), 但是会使父进程阻塞
+3、signal(SIGCHLD,SIG_IGN), 并不是所有系统都兼容
+4、sigaction + SA_NOCLDWAIT, 并不是所有系统都兼容
+5、推荐方法：在signal handler中调用 waitpid （下面的例子能说明用 waitpid 而不用 wait的原因），这样父进程不用阻塞
+注意：每一种方法都有它适用的场合，比如方法 5 适用于 one-request-one-process 的网络服务器程序，而方法 1 则不适合。
+
+2.产生原因：在子进程终止后到父进程调用wait()前的时间里，子进程被称为zombie；
+具体a. 子进程结束后向父进程发出SIGCHLD信号，父进程默认忽略了它
+    b. 父进程没有调用wait()或waitpid()函数来等待子进程的结束
+    c. 网络原因有时会引起僵尸进程；
+3. 危害
+僵尸进程会占用系统资源，如果很多，则会严重影响服务器的性能；
+孤儿进程不会占用系统资源，最终是由init进程托管，由init进程来释放；
+signal(SIGCHLD, SIG_IGN);
+// 忽略SIGCHLD信号，这是一个常用于提升并发服务器性能的技巧
+// 因为并发服务器常常fork很多子进程，子进程终结之后需要服务器进程去wait清理资源。
+// 如果将此信号的处理方式设置为忽略，可让内核把僵尸进程转交给init进程去处理，省去了大量僵尸进程占用系统资源。
+4.如何防止僵尸进程
+(1) 让僵尸进程成为孤儿进程，由init进程回收；(手动杀死父进程)
+(2) 调用fork()两次；
+(3) 捕捉SIGCHLD信号，并在信号处理函数中调用wait函数；
+下面给出一个具体的案例来说明这种方法。
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+void sig_handler(int signo)
+{
+	printf("child process deaded, signo: %d\n", signo);
+	wait(0);// 当捕获到SIGCHLD信号，父进程调用wait回收，避免子进程成为僵尸进程
+}
+
+void out(int n)
+{
+	int i;
+	for(i = 0; i < n; ++i)
+	{
+		printf("%d out %d\n", getpid(), i);
+		sleep(2);
+	}
+}
+
+int main(void)
+{
+	// 登记一下SIGCHLD信号
+	if(signal(SIGCHLD, sig_handler) == SIG_ERR)
+	{
+		perror("signal sigchld error");
+	}
+	pid_t pid = fork();
+	if(pid < 0)
+	{
+		perror("fork error");
+		exit(1);
+	}
+	else if(pid > 0)
+	{
+		// parent process
+		out(100);
+	}
+	else
+	{
+		// child process
+		out(10);
+	}
+
+	return 0;
+}
+在上面的信号处理函数sig_handler中我们调用了wait函数，目的是为了让父进程在捕获到子进程结束发出的SIGCHLD信号后对子进程进行回收，避免子进程成为僵尸进程。这里的wait函数不同于下面第4中方法中的wait的用法，这里只有在父进程捕获到子进程结束时才调用wait对其进行回收，其他时间父进程还是继续执行。而在方法4中，调用wait函数会发生阻塞。
+(4) 让僵尸进程的父进程来回收，父进程每隔一段时间来查询子进程是否结束并回收，调用wait()或者waitpid()，通知内核释放僵尸进程；
+wait函数的原型是：
+#include <sys/types.h>
+#include <sys/wait.h>
+pid_t wait(int *status);
+进程一旦调用了wait，就立即阻塞自己，由wait自动分析是否当前进程的某个子进程已经退出，如果让它找到了这样一个已经变成僵尸进程的子进程，wait就会收集这个子进程的信息，并把它彻底销毁后返回；如果没有找到这样一个子进程，wait就会一直阻塞在这里，直到有一个这样的进程出现为止。
+参数status用来保存被回收进程退出时的一些状态，如果我们不想知道这个子进程是如何死掉的，只想把它消灭掉的话，那么我们可以设定这个参数为NULL，就像下面这样：
+pid = wait(NULL);
+如果成功，wait会返回被回收子进程的进程ID，如果调用进程没有子进程，调用就会失败，此时wait返回-1，同时errno被置为ECHILD。
+waitpid函数的原型是：
+#include <sys/types.h>
+#include <sys/wait.h>
+pid_t waitpid(pid_t pid, int *status, int options);
+waitpid相比于wait函数多了两个参数，下面对这两个参数做一个详细说明。
+pid
+从参数的名字pid和类型pid_t 就可以看出，这里需要的是一个进程ID。当pid取不同的值时，在这里有不同的意义。
+pid > 0时，只等待进程ID等于pid的子进程，不管其他已经有多少个子进程运行结束退出了，只要指定的子进程还没结束，waitpid就会一直等下去；
+pid = -1时，等待任何一个子进程退出，没有 任何限制，此时和wait函数作用一样；
+pid = 0时，等待同一个进程组中的任何子进程，如果 子进程已经加入了别的进程组，waitpid不会对它做任何理睬；
+pid < -1时，等待一个指定进程组中的任何子进程，这个进程组的ID等于pid的绝对值；
+options
+options目前只支持WNOHANG和WUNTRACED两个选项，这是两个常数，可以用“|”运算符把它们连接起来使用，比如：
+ret = waitpid(-1, NULL, WNOHANG | WUNTRACED)；
+如果我们不想使用它们，也可以把options设为0，如：
+ret = waitpid(-1, NULL, 0)；
+如果使用了WNOHANG参数调用waitpid，即使没有子进程退出，它也会立即返回，不会像wait那样永远等下去；
+返回值和错误：
+waitpid的返回值比wait稍微复杂一些，一共有三种情况。
+当正常返回时，waitpid返回收集到的子进程的进程ID；
+如果设置了选项WNOHANG，而调用中waitpid发现没有已退出的子进程可以收集，则返回0；（非阻塞）
+如果调用中出错，则返回-1，这时errno会被设置成相应的值以指示错误所在；
+wait和waitpid的区别：
+在一个子进程终止前，wait使其调用者阻塞，而waitpid则提供了非阻塞版本；
+waitpid等待一个指定的子进程，而wait等待第一个终止的子进程；
+waitpid支持作业控制（以WUNTRACED选项，由pid指定的任一子进程状态，且其状态自暂停以来还未报告过，则返回其状态）；
+举个例子：当同时有5个客户连上服务器，也就是说有5个子进程分别对应了5个客户。若此时，5个客户几乎同时请求终止，即5个FIN发现服务器，同样的，5个SIGCHLD信号到达服务器，然而，UNIX的信号往往是不会排队的，这样一来，信号处理函数将会只执行一次，残留剩余4个子进程作为僵尸进程驻留在内核空间。此时，正确的解决办法就是利用waitpid(-1， &status, WNOHANG)防止留下僵尸进程。其中的pid为-1表明等待第一个终止的子进程，而WNOHANG选择项通知内核在没有已终止进程时不要阻塞
+检查wait和waitpid两个函数返回终止状态的宏
+a.WIFEXITED/WEXITSTATUS(status)
+        若为正常终止子进程返回的状态，则为真。
+b.WIFSIGNALED/WTERMSIG(status)
+        若为异常终止子进程返回的状态，则为真(接到一个不能捕捉的信号)
+c.WIFSTOPPED/WSTOPSIG(status)   （看当前子进程在终止前是否暂停过）
+         若为当前暂停子进程的返回状态，则为真。
+===============================================================
+下面以一个案例来说明wait和waitpid的用法
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+
+void out_status(int status)
+{
+//	printf("status: %d\n", status);
+	if(WIFEXITED(status))//正常终止
+	{
+		printf("normal exit: %d\n", WEXITSTATUS(status));
+	}
+	else if(WIFSIGNALED(status))// 非正常终止
+	{
+		printf("abnormal term: %d\n", WTERMSIG(status));
+	}
+	else if(WIFSTOPPED(status))// 终止前是否暂停过
+	{
+		printf("stopped sig: %d\n", WSTOPSIG(status));
+	}
+	else//未知
+	{
+		printf("unknown sig\n");
+	}
+}
+
+int main(void)
+{
+	int status;
+	pid_t pid;
+
+	// 正常终止
+	if((pid = fork()) < 0)
+	{
+		perror("fork error");
+		exit(1);
+	}
+	else if(pid == 0)
+	{
+		printf("pid: %d, ppid: %d\n", getpid(), getppid());
+		exit(3);// 子进程终止运行(状态码为3也算是一种正常终止)
+	}
+	// 父进程调用阻塞，等待子进程结束并回收
+	wait(&status);
+	out_status(status);
+	printf("--------------------------\n");
+
+	//异常终止
+	if((pid = fork()) < 0)
+	{
+		perror("fork error");
+		exit(1);
+	}
+	else if(pid == 0)
+	{
+		printf("pid: %d, ppid: %d\n", getpid(), getppid());
+		int i = 3, j =  0;
+		int k = i / j;
+		printf("k: %d\n", k);
+	} 
+	wait(&status);
+	out_status(status);
+	printf("-------------------------\n");
+	
+	if((pid = fork()) < 0)
+	{
+		perror("fork error");
+		exit(1);
+	}
+	else if(pid == 0)
+	{
+		printf("pid: %d, ppid: %d\n", getpid(), getppid());
+		pause();// 暂停,等待一个信号来唤醒/终止
+	/*	int i = 0;
+		while(++i > 0)
+			sleep(3);
+	*/
+	}
+	//wait(&status);
+	
+	// 用waitpid的非阻塞方式
+	do
+	{
+		pid = waitpid(pid, &status, WNOHANG | WUNTRACED);
+		if(pid == 0)
+			sleep(1);
+	}while(pid == 0);
+
+	out_status(status);
+	
+	return 0;
+}
+程序中第一个子进程算是正常退出，所以最后返回其退出状态码为3；
+程序中第二个子进程是除0操作，属于异常终止；
+程序中第三个子进程如果使用pause或while循环会让程序“暂停”下来，但是这里的暂停并不是WIFSTOPPED/WSTOPSIG(status)所说的暂停。这里程序其实并没有停下来，只是不停的在做循环，我们可以通过kill将其杀掉，同样是属于异常终止；
+那么要想实现上述所说的第三种状态，即子进程在退出前曾暂停过，我们就不能使用wait函数来回收子进程，而是要使用waitpid并且配合WNOHANG和WUNTRACED选项。
+下图是程序执行后的运行结果：
+可见，程序执行到pause出停了下来，相当于是在做死循环；
+下面给该进程一个暂停信号，kill -SIGSTOP 2620，执行结果如下：
+输出的状态码是19，也就是信号SIGSTOP对应的编号。
